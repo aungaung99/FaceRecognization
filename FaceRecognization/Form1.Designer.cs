@@ -56,6 +56,7 @@ namespace FaceRecognization
             this.BtnCapture.TabIndex = 1;
             this.BtnCapture.Text = "Capture";
             this.BtnCapture.UseVisualStyleBackColor = true;
+            this.BtnCapture.Click += new System.EventHandler(this.BtnCapture_Click);
             // 
             // BtnDetectFaces
             // 
