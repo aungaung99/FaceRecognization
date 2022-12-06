@@ -1,6 +1,5 @@
 ﻿using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.Face;
 using Emgu.CV.Structure;
 
 using System;
@@ -14,8 +13,8 @@ namespace FaceRecognization
         #region Varaiables
 
         private VideoCapture videoCapture = null;
-        private Image<Bgr, Byte> currentFrame = null;
-        private readonly Mat frame = new Mat();
+        private Image<Bgr, byte> currentFrame = null;
+        private readonly Mat frame = new();
 
         #endregion
         public Form1()
@@ -33,17 +32,26 @@ namespace FaceRecognization
 
         private void ProcessFrame(object sender, EventArgs e)
         {
-            // Step 1 : Capture
-            videoCapture.Retrieve(frame, 0);
-            currentFrame = frame.ToImage<Bgr, Byte>().Resize(pictureBox1.Width, pictureBox1.Height, Inter.Cubic);
-
-            // Render the video capture into the Picutre Box
-            System.Drawing.Bitmap bmp;
-            using (var ms = new MemoryStream(currentFrame.Bytes))
+            try
             {
-                bmp = new System.Drawing.Bitmap(ms);
+
+                // Step 1 : Capture
+                videoCapture.Retrieve(frame, 0);
+                currentFrame = frame.ToImage<Bgr, byte>().Resize(pictureBox1.Width, pictureBox1.Height, Inter.Cubic);
+
+                // Render the video capture into the Picutre Box
+                System.Drawing.Bitmap bmp;
+                using (MemoryStream ms = new(currentFrame.Bytes))
+                {
+                    bmp = new System.Drawing.Bitmap(ms);
+                }
+                pictureBox1.Image = bmp;
             }
-            pictureBox1.Image = bmp;
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
         }
     }
 }
