@@ -1,7 +1,4 @@
-﻿using Emgu.CV;
-using Emgu.CV.CvEnum;
-using Emgu.CV.Structure;
-
+﻿
 using System;
 using System.IO;
 using System.Windows.Forms;
@@ -12,9 +9,9 @@ namespace FaceRecognization
     {
         #region Varaiables
 
-        private VideoCapture videoCapture = null;
-        private Image<Bgr, byte> currentFrame = null;
-        private readonly Mat frame = new();
+        //private VideoCapture videoCapture = null;
+        //private Image<Bgr, byte> currentFrame = null;
+        //private readonly Mat frame = new();
 
         #endregion
         public Form1()
@@ -24,33 +21,31 @@ namespace FaceRecognization
 
         private void BtnCapture_Click(object sender, EventArgs e)
         {
-            videoCapture = new VideoCapture();
-            videoCapture.ImageGrabbed += ProcessFrame;
-            videoCapture.Start();
+          
 
         }
 
         private void ProcessFrame(object sender, EventArgs e)
         {
-            try
-            {
+            //try
+            //{
 
-                // Step 1 : Capture
-                videoCapture.Retrieve(frame, 0);
-                currentFrame = frame.ToImage<Bgr, byte>().Resize(pictureBox1.Width, pictureBox1.Height, Inter.Cubic);
+            //    // Step 1 : Capture
+            //    videoCapture.Retrieve(frame, 0);
+            //    currentFrame = frame.ToImage<Bgr, byte>().Resize(pictureBox1.Width, pictureBox1.Height, Inter.Cubic);
 
-                // Render the video capture into the Picutre Box
-                System.Drawing.Bitmap bmp;
-                using (MemoryStream ms = new(currentFrame.Bytes))
-                {
-                    bmp = new System.Drawing.Bitmap(ms);
-                }
-                pictureBox1.Image = bmp;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            //    // Render the video capture into the Picutre Box
+            //    System.Drawing.Bitmap bmp;
+            //    using (MemoryStream ms = new(currentFrame.Bytes))
+            //    {
+            //        bmp = new System.Drawing.Bitmap(ms);
+            //    }
+            //    pictureBox1.Image = bmp;
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //}
 
         }
     }
