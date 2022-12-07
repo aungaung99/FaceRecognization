@@ -59,15 +59,6 @@ namespace FaceRecognization
 
             System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
 
-            //pictureBox1.Image = EmguCvAPI.DetectFaces(imageEmgu,
-            //    pictureBox1.Width,
-            //    pictureBox1.Height,
-            //    scaleFactorValue,
-            //    neighborsValue,
-            //    detectionTime,
-            //    drawingTime, EnabledSave, BtnAddPerson, TxtName)
-            //    .Bitmap;
-
             //Step 1: Video Capture
             if (_captureEmgu != null && _captureEmgu.Ptr != IntPtr.Zero)
             {
@@ -84,7 +75,7 @@ namespace FaceRecognization
                     //Enhance the image to get better result
                     CvInvoke.EqualizeHist(grayImage, grayImage);
 
-                    Rectangle[] faces = faceCasacdeClassifier.DetectMultiScale(grayImage, scaleFactorValue, neighborsValue, Size.Empty, Size.Empty);
+                    Rectangle[] faces = faceCasacdeClassifier.DetectMultiScale(grayImage, 1.4, 1, Size.Empty, Size.Empty);
                     //If faces detected
                     if (faces.Length > 0)
                     {
@@ -113,7 +104,7 @@ namespace FaceRecognization
                                 //to avoid hang GUI we will create a new task
                                 Task.Factory.StartNew(() =>
                                 {
-                                    for (int i = 0; i < 10; i++)
+                                    for (int i = 0; i < 2; i++)
                                     {
                                         //resize the image then saving it
                                         resultImage.Resize(200, 200, Inter.Cubic).Save(path + @"\" + TxtName.Text + "_" + DateTime.Now.ToString("dd-mm-yyyy-hh-mm-ss") + ".jpg");
