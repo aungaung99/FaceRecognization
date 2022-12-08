@@ -1,27 +1,34 @@
 ﻿using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.Structure;
 using Emgu.CV.Face;
-using Emgu.Util;
+using Emgu.CV.Structure;
+using Emgu.CV.Util;
+
 using System;
-using System.Windows.Forms;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Collections.Generic;
+using System.Windows.Forms;
 
 namespace FaceRecognization4._0
 {
     public partial class Form1 : Form
     {
-        VideoCapture _catpure = null;
-        private Image<Bgr, Byte> currentFrame = null;
-        private Image<Gray, Byte> detectFace = null;
-        private List<FaceData> faceList = new();
-        private readonly CascadeClassifier haarCascade = new(@"C:\haarcascades\haarcascade_frontalface_alt_tree.xml");
+        private VideoCapture _catpure = null;
+        private Image<Bgr, byte> currentFrame = null;
+        private Image<Gray, byte> detectFace = null;
+        private readonly List<FaceData> faceList = new();
+        private readonly VectorOfMat imageList = new();
+        private readonly VectorOfInt labelList = new();
+        private readonly List<string> nameList = new();
+        private CascadeClassifier haarCascade = new(@"C:\haarcascades\haarcascade_frontalface_alt_tree.xml");
         private bool EnabledDetectFace = false;
-        private readonly Mat imageEmgu = new Mat();
+        private bool EnabledRecognizeFace = false;
+        private readonly Mat imageEmgu = new();
+        private EigenFaceRecognizer recognizer;
+        private string FaceName;
+        private Bitmap CameraCaptureFace;
+
         public Form1()
         {
             InitializeComponent();
@@ -43,8 +50,10 @@ namespace FaceRecognization4._0
         {
             if (_catpure != null && _catpure.Ptr != IntPtr.Zero)
             {
+                System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+
                 _catpure.Retrieve(imageEmgu, 0);
-                currentFrame = _catpure.QueryFrame().ToImage<Bgr, Byte>();
+                currentFrame = _catpure.QueryFrame().ToImage<Bgr, byte>();
                 //currentFrame = imageEmgu.ToImage<Bgr, byte>().Resize(pictureBox1.Width, pictureBox1.Height, Inter.Cubic);
                 if (currentFrame != null)
                 {
@@ -52,14 +61,19 @@ namespace FaceRecognization4._0
                     {
                         try
                         {
-                            Image<Gray, Byte> grayFrame = currentFrame.Convert<Gray, Byte>();
+                            Image<Gray, byte> grayFrame = currentFrame.Convert<Gray, byte>();
                             Rectangle[] faces = haarCascade.DetectMultiScale(grayFrame, 1.2, 10, Size.Empty, Size.Empty);
 
                             // detect face
-                            foreach (var face in faces)
+                            foreach (Rectangle face in faces)
                             {
                                 currentFrame.Draw(face, new Bgr(225, 225, 0), 2);
-                                detectFace = currentFrame.Copy(face).Convert<Gray, Byte>();
+                                detectFace = currentFrame.Copy(face).Convert<Gray, byte>();
+                                if (EnabledRecognizeFace)
+                                {
+                                    FaceRecognition();
+                                }
+                               
                                 break;
                             }
                         }
@@ -69,9 +83,11 @@ namespace FaceRecognization4._0
                         }
                     }
 
-                    pictureBox1.Image = currentFrame.ToBitmap();
+                    picCapture.Image = currentFrame.ToBitmap();
                 }
 
+                watch.Stop();
+                totalTime.Text = "Total time: " + watch.ElapsedMilliseconds.ToString() + " ms";
             }
         }
 
@@ -102,20 +118,103 @@ namespace FaceRecognization4._0
                 MessageBox.Show("Please type Name");
                 return;
             }
-         
+
             //resultImage.Resize(200, 200, Inter.Cubic).Save(path + @"\" + TxtName.Text + "_" + DateTime.Now.ToString("dd-mm-yyyy-hh-mm-ss") + ".jpg");
-            detectFace.Save(path + @"\" + TxtName.Text + "_" + DateTime.Now.ToString("dd-mm-yyyy-hh-mm-ss") + ".jpg");
+            //detectFace.Save(path + @"\" + TxtName.Text + "_" + DateTime.Now.ToString("dd-mm-yyyy-hh-mm-ss") + ".jpg");
+            detectFace.Save(Config.FacePhotosPath + @"\" + "face" + (faceList.Count + 1) + Config.ImageFileExtension);
             StreamWriter writer = new StreamWriter(Config.FaceListTextFile, true);
-            writer.WriteLine(String.Format("face{0}:{1}", (faceList.Count + 1), TxtName.Text));
+            writer.WriteLine(string.Format("face{0}:{1}", (faceList.Count + 1), TxtName.Text));
             writer.Close();
         }
 
-        private void GetFacesList()
+        public void GetFacesList()
         {
-            if (!File.Exists(@"C:\haarcascades\haarcascade_frontalface_alt_tree.xml"))
+            //haar cascade classifier
+            if (!File.Exists(Config.HaarCascadePath))
             {
-                //string text="Con"
+                string text = "Cannot find Haar cascade data file:\n\n";
+                text += Config.HaarCascadePath;
+                MessageBox.Show(text, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+
+            haarCascade = new CascadeClassifier(Config.HaarCascadePath);
+            faceList.Clear();
+            string line;
+
+            // Create empty directory / file for face data if it doesn't exist
+            if (!Directory.Exists(Config.FacePhotosPath))
+            {
+                Directory.CreateDirectory(Config.FacePhotosPath);
+            }
+
+            if (!File.Exists(Config.FaceListTextFile))
+            {
+                string text = "Cannot find face data file:\n\n";
+                text += Config.FaceListTextFile + "\n\n";
+                text += "If this is your first time running the app, an empty file will be created for you.";
+                DialogResult result = MessageBox.Show(text, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                switch (result)
+                {
+                    case DialogResult.OK:
+                        string dirName = Path.GetDirectoryName(Config.FaceListTextFile);
+                        Directory.CreateDirectory(dirName);
+                        File.Create(Config.FaceListTextFile).Close();
+                        break;
+                }
+            }
+
+            StreamReader reader = new(Config.FaceListTextFile);
+            int i = 0;
+            while ((line = reader.ReadLine()) != null)
+            {
+                string[] lineParts = line.Split(':');
+                FaceData faceInstance = new()
+                {
+                    FaceImage = new Image<Gray, byte>(Config.FacePhotosPath + @"\" + lineParts[0] + Config.ImageFileExtension),
+                    PersonName = lineParts[1]
+                };
+                faceList.Add(faceInstance);
+            }
+            foreach (FaceData face in faceList)
+            {
+                imageList.Push(face.FaceImage.Mat);
+                nameList.Add(face.PersonName);
+                labelList.Push(new[] { i++ });
+            }
+            reader.Close();
+
+            // Train recogniser
+            if (imageList.Size > 0)
+            {
+                recognizer = new EigenFaceRecognizer(imageList.Size);
+                recognizer.Train(imageList, labelList);
+            }
+
+        }
+
+        private void FaceRecognition()
+        {
+            if (imageList.Size != 0)
+            {
+                //Eigen Face Algorithm
+                FaceRecognizer.PredictionResult result = recognizer.Predict(detectFace.Resize(100, 100, Inter.Cubic));
+                lblName.Text = nameList[result.Label];
+                picRecognizeFace.Image = detectFace.ToBitmap();
+            }
+            else
+            {
+                FaceName = "Please Add Face";
+            }
+        }
+
+        private void BtnRecoginze_Click(object sender, EventArgs e)
+        {
+            EnabledRecognizeFace = true;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            GetFacesList();
         }
     }
 }
