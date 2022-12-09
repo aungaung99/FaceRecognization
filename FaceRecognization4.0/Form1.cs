@@ -26,8 +26,7 @@ namespace FaceRecognization4._0
         private bool EnabledRecognizeFace = false;
         private readonly Mat imageEmgu = new();
         private EigenFaceRecognizer recognizer;
-        private string FaceName;
-        private Bitmap CameraCaptureFace;
+        private bool IsFileUpload = false;
 
         public Form1()
         {
@@ -53,7 +52,7 @@ namespace FaceRecognization4._0
                 System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
 
                 _catpure.Retrieve(imageEmgu, 0);
-                currentFrame = _catpure.QueryFrame().ToImage<Bgr, byte>();
+                currentFrame = _catpure.QueryFrame().ToImage<Bgr, byte>().Resize(picCapture.Width, picCapture.Height, Inter.Cubic);
                 //currentFrame = imageEmgu.ToImage<Bgr, byte>().Resize(pictureBox1.Width, pictureBox1.Height, Inter.Cubic);
                 if (currentFrame != null)
                 {
@@ -62,7 +61,7 @@ namespace FaceRecognization4._0
                         try
                         {
                             Image<Gray, byte> grayFrame = currentFrame.Convert<Gray, byte>();
-                            Rectangle[] faces = haarCascade.DetectMultiScale(grayFrame, 1.2, 10, Size.Empty, Size.Empty);
+                            Rectangle[] faces = haarCascade.DetectMultiScale(grayFrame, 1.3, 10, Size.Empty, Size.Empty);
 
                             // detect face
                             foreach (Rectangle face in faces)
@@ -73,7 +72,7 @@ namespace FaceRecognization4._0
                                 {
                                     FaceRecognition();
                                 }
-                               
+
                                 break;
                             }
                         }
@@ -98,6 +97,8 @@ namespace FaceRecognization4._0
 
         private void BtnAddFace_Click(object sender, EventArgs e)
         {
+
+
             if (detectFace == null)
             {
                 MessageBox.Show("No Face detected");
@@ -203,18 +204,58 @@ namespace FaceRecognization4._0
             }
             else
             {
-                FaceName = "Please Add Face";
+                lblName.Text = "Please Add Face";
+            }
+        }
+
+        private void FaceRecognitionWithUpload()
+        {
+            if (imageList.Size != 0)
+            {
+                //Eigen Face Algorithm
+                FaceRecognizer.PredictionResult result = recognizer.Predict(detectFace.Resize(100, 100, Inter.Cubic));
+                lblName.Text = nameList[result.Label];
+                picRecognizeFace.Image = detectFace.ToBitmap();
+            }
+            else
+            {
+                lblName.Text = "Please Add Face";
             }
         }
 
         private void BtnRecoginze_Click(object sender, EventArgs e)
         {
             EnabledRecognizeFace = true;
+            if (IsFileUpload)
+                FaceRecognition();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
             GetFacesList();
+        }
+
+        private void BtnUpload_Click(object sender, EventArgs e)
+        {
+            IsFileUpload = true;
+            using OpenFileDialog dialog = new() { Multiselect = false, Filter = "JPEG|*.jpg" };
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                picCapture.Image = Image.FromFile(dialog.FileName);
+                Bitmap bitmap = new(picCapture.Image);
+                detectFace = bitmap.ToImage<Bgr, byte>().Convert<Gray, byte>();
+                Rectangle[] faces = haarCascade.DetectMultiScale(bitmap.ToImage<Bgr, byte>().Convert<Gray, byte>(), 1.3, 10);
+                foreach (Rectangle face in faces)
+                {
+                    using (Graphics graphics = Graphics.FromImage(bitmap))
+                    {
+                        using Pen pen = new(Color.Red, 1);
+                        graphics.DrawRectangle(pen, face);
+                    }
+
+                    picCapture.Image = bitmap;
+                }
+            }
         }
     }
 }

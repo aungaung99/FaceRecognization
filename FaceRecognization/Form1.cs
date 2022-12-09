@@ -75,7 +75,7 @@ namespace FaceRecognization
                     //Enhance the image to get better result
                     CvInvoke.EqualizeHist(grayImage, grayImage);
 
-                    Rectangle[] faces = faceCasacdeClassifier.DetectMultiScale(grayImage, 1.4, 1, Size.Empty, Size.Empty);
+                    Rectangle[] faces = faceCasacdeClassifier.DetectMultiScale(grayImage, 1.3, 1, Size.Empty, Size.Empty);
                     //If faces detected
                     if (faces.Length > 0)
                     {
