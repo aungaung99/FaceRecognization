@@ -244,7 +244,7 @@ namespace FaceRecognization4._0
                 picCapture.Image = Image.FromFile(dialog.FileName);
                 Bitmap bitmap = new(picCapture.Image);
                 detectFace = bitmap.ToImage<Bgr, byte>().Convert<Gray, byte>();
-                Rectangle[] faces = haarCascade.DetectMultiScale(bitmap.ToImage<Bgr, byte>().Convert<Gray, byte>(), 1.3, 10);
+                Rectangle[] faces = haarCascade.DetectMultiScale(detectFace, 1.3, 10);
                 foreach (Rectangle face in faces)
                 {
                     using (Graphics graphics = Graphics.FromImage(bitmap))

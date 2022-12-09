@@ -11,7 +11,6 @@
     <PackageReference Include="Emgu.CV" Version="4.6.0.5131" />
     <PackageReference Include="Emgu.CV.Bitmap" Version="4.6.0.5131" />
     <PackageReference Include="Emgu.CV.runtime.windows" Version="4.6.0.5131" />
-    <PackageReference Include="ZedGraph" Version="5.1.7" />
   </ItemGroup>
 
 </Project>
