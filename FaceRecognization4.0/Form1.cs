@@ -97,8 +97,6 @@ namespace FaceRecognization4._0
 
         private void BtnAddFace_Click(object sender, EventArgs e)
         {
-
-
             if (detectFace == null)
             {
                 MessageBox.Show("No Face detected");
@@ -126,6 +124,8 @@ namespace FaceRecognization4._0
             StreamWriter writer = new StreamWriter(Config.FaceListTextFile, true);
             writer.WriteLine(string.Format("face{0}:{1}", (faceList.Count + 1), TxtName.Text));
             writer.Close();
+
+            GetFacesList();
         }
 
         public void GetFacesList()
@@ -199,21 +199,15 @@ namespace FaceRecognization4._0
             {
                 //Eigen Face Algorithm
                 FaceRecognizer.PredictionResult result = recognizer.Predict(detectFace.Resize(100, 100, Inter.Cubic));
-                lblName.Text = nameList[result.Label];
-                picRecognizeFace.Image = detectFace.ToBitmap();
-            }
-            else
-            {
-                lblName.Text = "Please Add Face";
-            }
-        }
+                //if (result.Label != 0)
+                //{
 
-        private void FaceRecognitionWithUpload()
-        {
-            if (imageList.Size != 0)
-            {
-                //Eigen Face Algorithm
-                FaceRecognizer.PredictionResult result = recognizer.Predict(detectFace.Resize(100, 100, Inter.Cubic));
+                //}
+                //else
+                //{
+                //    lblName.Text = "Face not found";
+                //}
+
                 lblName.Text = nameList[result.Label];
                 picRecognizeFace.Image = detectFace.ToBitmap();
             }
@@ -243,8 +237,8 @@ namespace FaceRecognization4._0
             {
                 picCapture.Image = Image.FromFile(dialog.FileName);
                 Bitmap bitmap = new(picCapture.Image);
-                detectFace = bitmap.ToImage<Bgr, byte>().Convert<Gray, byte>();
-                Rectangle[] faces = haarCascade.DetectMultiScale(detectFace, 1.3, 10);
+                Image<Bgr, byte> currentImg = bitmap.ToImage<Bgr, byte>().Convert<Bgr, byte>();
+                Rectangle[] faces = haarCascade.DetectMultiScale(currentImg, 1.3, 10, Size.Empty, Size.Empty);
                 foreach (Rectangle face in faces)
                 {
                     using (Graphics graphics = Graphics.FromImage(bitmap))
@@ -253,7 +247,11 @@ namespace FaceRecognization4._0
                         graphics.DrawRectangle(pen, face);
                     }
 
-                    picCapture.Image = bitmap;
+                    detectFace = currentImg.Copy(face).Convert<Gray, byte>();
+
+                    picCapture.Image = bitmap;//currentImg.Resize(picCapture.Width, picCapture.Height, Inter.Cubic).ToBitmap();
+                    picCapture.SizeMode = PictureBoxSizeMode.CenterImage;
+                    picRecognizeFace.Image = detectFace.ToBitmap();
                 }
             }
         }
